@@ -44,6 +44,12 @@ timezone, interval duration, units, and whether taxes/supplier charges are alrea
 included. Do not apply an existing ENTSO-e cost template without checking this.
 The public demo offers a dynamic-price option and can help inspect the data format.
 
+The Zonopnaam dashboard has a setting to display different price variants. The
+account used for this project currently displays the **all-in price**. Verify
+whether the pricing response follows this dashboard setting or includes all
+variants. When using all-in prices, do not add taxes or supplier charges again.
+The pricing response and the effect of this setting have not yet been inspected.
+
 ## Development
 
 ```sh
