@@ -1,7 +1,7 @@
-# Zon op Naam for Home Assistant
+# Zonopnaam for Home Assistant
 
 A custom integration intended to replace ENTSO-e price sensors with prices from
-Zon op Naam. The first implemented step is account login in Home Assistant.
+Zonopnaam. The first implemented step is account login in Home Assistant.
 **Price sensors are not implemented yet.**
 
 ## Installation and login
@@ -9,8 +9,8 @@ Zon op Naam. The first implemented step is account login in Home Assistant.
 1. Copy `custom_components/zonopnaam` into Home Assistant's
    `/config/custom_components/zonopnaam` directory.
 2. Restart Home Assistant.
-3. Open **Settings → Devices & services → Add integration → Zon op Naam**.
-4. Enter your Zon op Naam username and password.
+3. Open **Settings → Devices & services → Add integration → Zonopnaam**.
+4. Enter your Zonopnaam username and password.
 
 The integration obtains the CSRF token, submits the login form, and retains
 `csrftoken` and `sessionid` in an isolated cookie jar for each account. Credentials
@@ -36,10 +36,10 @@ Planned sensors: current and next-period electricity price, average, minimum,
 maximum, relative-price percentages, and times of minimum/maximum prices.
 The reference uses `prices`, `prices_today`, and `prices_tomorrow` attributes;
 chart entries have `time` and `price` fields. We will preserve that format for
-existing charts, with new Zon op Naam entity IDs. The reference's `next_hour_price`
+existing charts, with new Zonopnaam entity IDs. The reference's `next_hour_price`
 key may represent the next 15-minute or 60-minute period.
 
-Before implementing sensors, verify the authenticated Zon op Naam price endpoint,
+Before implementing sensors, verify the authenticated Zonopnaam price endpoint,
 timezone, interval duration, units, and whether taxes/supplier charges are already
 included. Do not apply an existing ENTSO-e cost template without checking this.
 The public demo offers a dynamic-price option and can help inspect the data format.

@@ -1,4 +1,4 @@
-"""Zon op Naam integration."""
+"""Zonopnaam integration."""
 from aiohttp import CookieJar
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
@@ -13,10 +13,10 @@ async def async_setup_entry(hass, entry):
         await client.async_login()
     except InvalidAuth as err:
         session.detach()
-        raise ConfigEntryAuthFailed("Zon op Naam login failed") from err
+        raise ConfigEntryAuthFailed("Zonopnaam login failed") from err
     except (CannotConnect, UnexpectedResponse) as err:
         session.detach()
-        raise ConfigEntryNotReady("Zon op Naam unavailable or changed") from err
+        raise ConfigEntryNotReady("Zonopnaam unavailable or changed") from err
     except BaseException:
         session.detach()
         raise

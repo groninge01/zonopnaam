@@ -1,4 +1,4 @@
-"""Cookie authentication for Zon op Naam."""
+"""Cookie authentication for Zonopnaam."""
 import asyncio
 from html.parser import HTMLParser
 from aiohttp import ClientError, ClientTimeout

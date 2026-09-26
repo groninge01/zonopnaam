@@ -1,4 +1,4 @@
-"""Obtain Zon op Naam cookies interactively using only the Python standard library."""
+"""Obtain Zonopnaam cookies interactively using only the Python standard library."""
 
 import argparse
 import getpass
@@ -34,7 +34,7 @@ class SameOriginRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         parsed = urllib.parse.urlsplit(newurl)
         if (parsed.scheme, parsed.netloc) != ("https", "zonopnaam.app"):
-            raise RuntimeError("Unexpected redirect outside Zon op Naam; stopped.")
+            raise RuntimeError("Unexpected redirect outside Zonopnaam; stopped.")
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -69,8 +69,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path(".secrets/cookies.txt"))
     args = parser.parse_args()
-    username = input("Zon op Naam username: ").strip()
-    password = getpass.getpass("Zon op Naam password: ")
+    username = input("Zonopnaam username: ").strip()
+    password = getpass.getpass("Zonopnaam password: ")
     if not username or not password:
         parser.error("Username and password are required.")
     try:

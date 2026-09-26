@@ -1,6 +1,6 @@
 {
   "domain": "zonopnaam",
-  "name": "Zon op Naam",
+  "name": "Zonopnaam",
   "codeowners": [],
   "config_flow": true,
   "documentation": "https://zonopnaam.app/",
