@@ -41,3 +41,4 @@ Next: identify the authenticated energy-data endpoints, then implement an async
 client and Home Assistant config flow with session renewal.
 # zonopnaam
 # zonopnaam
+# zonopnaam
