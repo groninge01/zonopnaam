@@ -1,0 +1,11 @@
+{
+  "domain": "zonopnaam",
+  "name": "Zon op Naam",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://zonopnaam.app/",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}

@@ -1,0 +1,26 @@
+{
+  "title": "Zon op Naam",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Log in to Zon op Naam",
+        "description": "Enter your Zon op Naam credentials. Home Assistant manages your login automatically.",
+        "data": {"username": "Username", "password": "Password"}
+      },
+      "reauth_confirm": {
+        "title": "Log in again",
+        "description": "Enter the current password for this Zon op Naam account.",
+        "data": {"password": "Password"}
+      }
+    },
+    "error": {
+      "invalid_auth": "Login failed. Check your credentials.",
+      "cannot_connect": "Cannot connect to Zon op Naam. Try again later.",
+      "unexpected_response": "Zon op Naam returned an unsupported page. Its login process may have changed."
+    },
+    "abort": {
+      "already_configured": "This account is already configured.",
+      "reauth_successful": "Login details updated."
+    }
+  }
+}
