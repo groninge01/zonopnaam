@@ -1,9 +1,16 @@
 """Cookie authentication for Zonopnaam."""
+
 import asyncio
+import re
+from datetime import datetime
 from html.parser import HTMLParser
+
 from aiohttp import ClientError, ClientTimeout
 from yarl import URL
+
 from .const import BASE_URL
+from .gas import parse_gas_prices
+from .prices import TIME_ZONE, PriceParseError, parse_prices
 
 
 class CannotConnect(Exception):
@@ -34,13 +41,41 @@ class LoginPage(HTMLParser):
                 self.password_field = True
 
 
+class DashboardPage(HTMLParser):
+    """Find the selected account's electricity pricing link."""
+
+    def __init__(self, html):
+        super().__init__()
+        self.pricing_path = None
+        self.gas_pricing_path = None
+        self.feed(html)
+
+    def handle_starttag(self, tag, attrs):
+        href = dict(attrs).get("href", "")
+        if (
+            tag == "a"
+            and self.pricing_path is None
+            and re.fullmatch(r"/mc/\d+/pricing-electricity/", href)
+        ):
+            self.pricing_path = href
+        if (
+            tag == "a"
+            and self.gas_pricing_path is None
+            and re.fullmatch(r"/mc/\d+/pricing-gas/", href)
+        ):
+            self.gas_pricing_path = href
+
+
 class ZonopnaamClient:
     """Manage one account's cookies in an isolated session."""
+
     def __init__(self, session, username, password):
         self.session = session
         self._username = username
         self._password = password
         self._lock = asyncio.Lock()
+        self.pricing_path = None
+        self.gas_pricing_path = None
 
     async def _request(self, method, path="/", data=None):
         url = URL(BASE_URL).join(URL(path))
@@ -50,7 +85,10 @@ class ZonopnaamClient:
                     if url.origin() != URL(BASE_URL).origin():
                         raise UnexpectedResponse("Unexpected redirect origin")
                     async with self.session.request(
-                        method, url, data=data, allow_redirects=False,
+                        method,
+                        url,
+                        data=data,
+                        allow_redirects=False,
                         headers={"Referer": BASE_URL, "Origin": BASE_URL.rstrip("/")},
                         timeout=ClientTimeout(total=30),
                     ) as response:
@@ -80,10 +118,16 @@ class ZonopnaamClient:
         page = LoginPage(await self._request("GET"))
         if not page.csrf or not page.password_field:
             raise UnexpectedResponse("Login form not found")
-        page = LoginPage(await self._request("POST", data={
-            "username": self._username, "password": self._password,
-            "csrfmiddlewaretoken": page.csrf,
-        }))
+        page = LoginPage(
+            await self._request(
+                "POST",
+                data={
+                    "username": self._username,
+                    "password": self._password,
+                    "csrfmiddlewaretoken": page.csrf,
+                },
+            )
+        )
         if page.password_field:
             raise InvalidAuth
         page = LoginPage(await self._request("GET"))
@@ -110,3 +154,40 @@ class ZonopnaamClient:
                 if LoginPage(html).password_field:
                     raise InvalidAuth
             return html
+
+    async def async_get_prices(self):
+        """Discover the active account and read its published price charts."""
+        if self.pricing_path is None:
+            dashboard = DashboardPage(await self.async_get("/"))
+            if not dashboard.pricing_path:
+                raise UnexpectedResponse(
+                    "Electricity pricing link not found on dashboard"
+                )
+            self.pricing_path = dashboard.pricing_path
+        for _ in range(2):
+            today = datetime.now(TIME_ZONE).date()
+            html = await self.async_get(self.pricing_path)
+            if datetime.now(TIME_ZONE).date() != today:
+                continue  # Refetch if the request crossed local midnight.
+            try:
+                prices = parse_prices(html, today)
+                gas_path = DashboardPage(html).gas_pricing_path
+                # Only use the gas link belonging to the same selected location.
+                expected = self.pricing_path.replace(
+                    "pricing-electricity/", "pricing-gas/"
+                )
+                self.gas_pricing_path = gas_path if gas_path == expected else None
+                return prices
+            except PriceParseError as err:
+                raise UnexpectedResponse(str(err)) from err
+        raise UnexpectedResponse("Price request crossed midnight")
+
+    async def async_get_gas_prices(self):
+        """Read gas tariffs only from an advertised pricing link."""
+        if not self.gas_pricing_path:
+            raise UnexpectedResponse("Gas pricing link not found")
+        html = await self.async_get(self.gas_pricing_path)
+        try:
+            return parse_gas_prices(html)
+        except PriceParseError as err:
+            raise UnexpectedResponse(str(err)) from err

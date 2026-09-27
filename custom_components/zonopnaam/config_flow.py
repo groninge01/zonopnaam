@@ -1,10 +1,16 @@
 """Set up account credentials in Home Assistant."""
+
+import probatio as pr
 from aiohttp import CookieJar
-import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from homeassistant.helpers.selector import TextSelector, TextSelectorConfig, TextSelectorType
+from homeassistant.helpers.selector import (
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
+
 from .api import CannotConnect, InvalidAuth, UnexpectedResponse, ZonopnaamClient
 from .const import DOMAIN
 
@@ -59,8 +65,10 @@ class ZonopnaamConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=data[CONF_USERNAME], data=data)
         schema = {}
         if not reauth:
-            schema[vol.Required(CONF_USERNAME)] = str
-        schema[vol.Required(CONF_PASSWORD)] = TextSelector(
+            schema[pr.Required(CONF_USERNAME)] = str
+        schema[pr.Required(CONF_PASSWORD)] = TextSelector(
             TextSelectorConfig(type=TextSelectorType.PASSWORD)
         )
-        return self.async_show_form(step_id=step, data_schema=vol.Schema(schema), errors=errors)
+        return self.async_show_form(
+            step_id=step, data_schema=pr.Schema(schema), errors=errors
+        )

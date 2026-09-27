@@ -1,1 +1,5 @@
-{"name": "Zonopnaam", "homeassistant": "2025.1.0", "render_readme": true}
+{
+  "name": "Zonopnaam",
+  "homeassistant": "2026.9.3",
+  "render_readme": true
+}
