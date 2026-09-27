@@ -4,6 +4,7 @@ import asyncio
 import re
 from datetime import datetime
 from html.parser import HTMLParser
+from http.cookies import SimpleCookie
 
 from aiohttp import ClientError, ClientTimeout
 from yarl import URL
@@ -69,13 +70,61 @@ class DashboardPage(HTMLParser):
 class ZonopnaamClient:
     """Manage one account's cookies in an isolated session."""
 
-    def __init__(self, session, username, password):
+    def __init__(self, session):
         self.session = session
-        self._username = username
-        self._password = password
         self._lock = asyncio.Lock()
         self.pricing_path = None
         self.gas_pricing_path = None
+
+    def restore_cookies(self, cookies):
+        """Restore the saved Zonopnaam session without account credentials."""
+        restored = SimpleCookie()
+        for name, attributes in cookies.items():
+            if name not in {"sessionid", "csrftoken"}:
+                continue
+            restored[name] = attributes.get("value", "")
+            morsel = restored[name]
+            for attribute in (
+                "domain",
+                "path",
+                "secure",
+                "httponly",
+                "samesite",
+                "expires",
+                "max-age",
+            ):
+                if attributes.get(attribute):
+                    morsel[attribute] = str(attributes[attribute])
+        if restored:
+            self.session.cookie_jar.update_cookies(
+                restored, response_url=URL(BASE_URL)
+            )
+
+    def export_cookies(self):
+        """Return only the cookies needed to resume the current session."""
+        cookies = self.session.cookie_jar.filter_cookies(URL(BASE_URL))
+        saved = {}
+        for name in ("sessionid", "csrftoken"):
+            morsel = cookies.get(name)
+            if morsel is None:
+                continue
+            saved[name] = {
+                "value": morsel.value,
+                **{
+                    attribute: morsel[attribute]
+                    for attribute in (
+                        "domain",
+                        "path",
+                        "secure",
+                        "httponly",
+                        "samesite",
+                        "expires",
+                        "max-age",
+                    )
+                    if morsel[attribute]
+                },
+            }
+        return saved
 
     async def _request(self, method, path="/", data=None):
         url = URL(BASE_URL).join(URL(path))
@@ -113,7 +162,7 @@ class ZonopnaamClient:
         except (ClientError, TimeoutError) as err:
             raise CannotConnect from err
 
-    async def _login(self):
+    async def _login(self, username, password):
         self.session.cookie_jar.clear()
         page = LoginPage(await self._request("GET"))
         if not page.csrf or not page.password_field:
@@ -122,8 +171,8 @@ class ZonopnaamClient:
             await self._request(
                 "POST",
                 data={
-                    "username": self._username,
-                    "password": self._password,
+                    "username": username,
+                    "password": password,
                     "csrfmiddlewaretoken": page.csrf,
                 },
             )
@@ -137,22 +186,16 @@ class ZonopnaamClient:
         if not cookies.get("sessionid") or not cookies.get("csrftoken"):
             raise UnexpectedResponse("Expected cookies missing")
 
-    async def async_login(self):
+    async def async_login(self, username, password):
         async with self._lock:
-            await self._login()
+            await self._login(username, password)
 
     async def async_get(self, path):
-        """Fetch a page, renewing an expired login once."""
+        """Fetch a page using the saved session."""
         async with self._lock:
-            try:
-                html = await self._request("GET", path)
-                if LoginPage(html).password_field:
-                    raise InvalidAuth
-            except InvalidAuth:
-                await self._login()
-                html = await self._request("GET", path)
-                if LoginPage(html).password_field:
-                    raise InvalidAuth
+            html = await self._request("GET", path)
+            if LoginPage(html).password_field:
+                raise InvalidAuth
             return html
 
     async def async_get_prices(self):

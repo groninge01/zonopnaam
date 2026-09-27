@@ -15,6 +15,9 @@ Requires **Home Assistant 2026.9.3 or newer** and a Zonopnaam account.
 
 The integration uses the location selected in your Zonopnaam account. If you
 have more than one location, select the one you want on the Zonopnaam website.
+Your username and password are used only to sign in and are not saved. Home
+Assistant saves the active session cookie so the integration can reconnect after
+a restart. If the session expires, you will be asked to sign in again.
 
 ## What you get
 

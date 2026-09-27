@@ -36,3 +36,9 @@ class ZonopnaamCoordinator(DataUpdateCoordinator):
             raise UpdateFailed("Cannot connect to Zonopnaam") from err
         except UnexpectedResponse as err:
             raise UpdateFailed(f"Unsupported Zonopnaam price page: {err}") from err
+        finally:
+            cookies = self.client.export_cookies()
+            if cookies != self.config_entry.data.get("cookies", {}):
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data={"cookies": cookies}
+                )

@@ -4,13 +4,13 @@
     "step": {
       "user": {
         "title": "Log in to Zonopnaam",
-        "description": "Enter your Zonopnaam credentials. Home Assistant manages your login automatically.",
+        "description": "Your username and password are used to sign in but are not saved. Home Assistant saves a session cookie so it can reconnect after restarts.",
         "data": {"username": "Username", "password": "Password"}
       },
       "reauth_confirm": {
         "title": "Log in again",
-        "description": "Enter the current password for this Zonopnaam account.",
-        "data": {"password": "Password"}
+        "description": "Sign in again. Your username and password are not saved; Home Assistant saves a new session cookie.",
+        "data": {"username": "Username", "password": "Password"}
       }
     },
     "error": {
@@ -20,7 +20,7 @@
     },
     "abort": {
       "already_configured": "This account is already configured.",
-      "reauth_successful": "Login details updated."
+      "reauth_successful": "Session refreshed."
     }
   }
 }

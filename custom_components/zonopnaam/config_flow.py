@@ -1,4 +1,6 @@
-"""Set up account credentials in Home Assistant."""
+"""Create a Zonopnaam session without saving account credentials."""
+
+from uuid import uuid4
 
 import probatio as pr
 from aiohttp import CookieJar
@@ -23,9 +25,9 @@ class ZonopnaamConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.hass, auto_cleanup=False, cookie_jar=CookieJar()
         )
         try:
-            await ZonopnaamClient(
-                session, data[CONF_USERNAME], data[CONF_PASSWORD]
-            ).async_login()
+            client = ZonopnaamClient(session)
+            await client.async_login(data[CONF_USERNAME], data[CONF_PASSWORD])
+            return client.export_cookies()
         finally:
             session.detach()
 
@@ -43,14 +45,9 @@ class ZonopnaamConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         reauth = step == "reauth_confirm"
         if user_input is not None:
             data = dict(user_input)
-            if reauth:
-                data[CONF_USERNAME] = self._get_reauth_entry().data[CONF_USERNAME]
-            else:
-                data[CONF_USERNAME] = data[CONF_USERNAME].strip()
-                await self.async_set_unique_id(data[CONF_USERNAME])
-                self._abort_if_unique_id_configured()
+            data[CONF_USERNAME] = data[CONF_USERNAME].strip()
             try:
-                await self._validate(data)
+                cookies = await self._validate(data)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -60,12 +57,15 @@ class ZonopnaamConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 if reauth:
                     return self.async_update_reload_and_abort(
-                        self._get_reauth_entry(), data_updates=data
+                        self._get_reauth_entry(),
+                        data_updates={"cookies": cookies},
                     )
-                return self.async_create_entry(title=data[CONF_USERNAME], data=data)
+                await self.async_set_unique_id(uuid4().hex)
+                return self.async_create_entry(
+                    title="Zonopnaam", data={"cookies": cookies}
+                )
         schema = {}
-        if not reauth:
-            schema[pr.Required(CONF_USERNAME)] = str
+        schema[pr.Required(CONF_USERNAME)] = str
         schema[pr.Required(CONF_PASSWORD)] = TextSelector(
             TextSelectorConfig(type=TextSelectorType.PASSWORD)
         )
