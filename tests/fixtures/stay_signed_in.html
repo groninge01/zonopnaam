@@ -1,0 +1,11 @@
+<!-- Form from /login/stay-signed-in/, with its CSRF token replaced. -->
+<h3>Aangemeld blijven?</h3>
+<form method="post" class="pioneer-form">
+    <input type="hidden" name="csrfmiddlewaretoken" value="stay-token">
+    <button type="submit" name="stay_signed_in_btn" value="no">Nee</button>
+    <button type="submit" name="stay_signed_in_btn" value="yes">Ja</button>
+    <label>
+        <input type="checkbox" name="ask_stay_signed_in" />
+        <span>Vraag me dit niet opnieuw!</span>
+    </label>
+</form>

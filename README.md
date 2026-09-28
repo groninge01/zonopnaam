@@ -11,7 +11,9 @@ Requires **Home Assistant 2026.9.3 or newer** and a Zonopnaam account.
 2. Add `https://github.com/groninge01/zonopnaam` and select **Integration**.
 3. Find and download **Zonopnaam** in HACS, then restart Home Assistant.
 4. Go to **Settings → Devices & services → Add integration** and choose **Zonopnaam**.
-5. Sign in with your Zonopnaam username and password.
+5. Sign in with your Zonopnaam username and password. The integration automatically
+   answers **Ja** to the website's **Aangemeld blijven?** question after login
+   and checks **Vraag me dit niet opnieuw**.
 
 The integration uses the location selected in your Zonopnaam account. If you
 have more than one location, select the one you want on the Zonopnaam website.

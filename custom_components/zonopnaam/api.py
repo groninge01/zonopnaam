@@ -31,6 +31,7 @@ class LoginPage(HTMLParser):
         super().__init__()
         self.csrf = None
         self.password_field = False
+        self.stay_signed_in = False
         self.feed(html)
 
     def handle_starttag(self, tag, attrs):
@@ -40,6 +41,12 @@ class LoginPage(HTMLParser):
                 self.csrf = attrs.get("value")
             if attrs.get("name") == "password":
                 self.password_field = True
+        if (
+            tag == "button"
+            and attrs.get("name") == "stay_signed_in_btn"
+            and attrs.get("value") == "yes"
+        ):
+            self.stay_signed_in = True
 
 
 class DashboardPage(HTMLParser):
@@ -167,21 +174,48 @@ class ZonopnaamClient:
         page = LoginPage(await self._request("GET"))
         if not page.csrf or not page.password_field:
             raise UnexpectedResponse("Login form not found")
+        form_data = {
+            "username": username,
+            "password": password,
+            "csrfmiddlewaretoken": page.csrf,
+        }
         page = LoginPage(
             await self._request(
                 "POST",
+                data=form_data,
+            )
+        )
+        if page.password_field:
+            raise InvalidAuth
+        # The site asks this after credentials, and can hide the question when
+        # a previous choice was saved. Explicitly request a persistent session.
+        stay_path = "/login/stay-signed-in/"
+        if not page.stay_signed_in:
+            page = LoginPage(await self._request("GET", stay_path))
+        if page.password_field:
+            raise InvalidAuth
+        if not page.stay_signed_in or not page.csrf:
+            raise UnexpectedResponse("Stay-signed-in form not found")
+        page = LoginPage(
+            await self._request(
+                "POST",
+                stay_path,
                 data={
-                    "username": username,
-                    "password": password,
                     "csrfmiddlewaretoken": page.csrf,
+                    "stay_signed_in_btn": "yes",
+                    "ask_stay_signed_in": "on",
                 },
             )
         )
         if page.password_field:
             raise InvalidAuth
+        if page.stay_signed_in:
+            raise UnexpectedResponse("Stay-signed-in choice was not accepted")
         page = LoginPage(await self._request("GET"))
         if page.password_field:
             raise InvalidAuth
+        if page.stay_signed_in:
+            raise UnexpectedResponse("Stay-signed-in choice was not accepted")
         cookies = self.session.cookie_jar.filter_cookies(URL(BASE_URL))
         if not cookies.get("sessionid") or not cookies.get("csrftoken"):
             raise UnexpectedResponse("Expected cookies missing")

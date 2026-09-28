@@ -19,6 +19,7 @@ class LoginPage(HTMLParser):
         super().__init__()
         self.csrf = None
         self.password_field = False
+        self.stay_signed_in = False
         self.feed(html)
 
     def handle_starttag(self, tag, attrs):
@@ -28,6 +29,12 @@ class LoginPage(HTMLParser):
                 self.csrf = attrs.get("value")
             if attrs.get("name") == "password":
                 self.password_field = True
+        if (
+            tag == "button"
+            and attrs.get("name") == "stay_signed_in_btn"
+            and attrs.get("value") == "yes"
+        ):
+            self.stay_signed_in = True
 
 
 class SameOriginRedirect(urllib.request.HTTPRedirectHandler):
@@ -60,6 +67,25 @@ def login(username, password):
         page = LoginPage(response.read().decode("utf-8"))
     if page.password_field:
         raise RuntimeError("Login form was returned. Check your credentials in the browser.")
+    stay_url = urllib.parse.urljoin(URL, "/login/stay-signed-in/")
+    if not page.stay_signed_in:
+        with opener.open(stay_url, timeout=30) as response:
+            page = LoginPage(response.read().decode("utf-8"))
+    if page.password_field or not page.stay_signed_in or not page.csrf:
+        raise RuntimeError("Expected stay-signed-in form was not found.")
+    data = urllib.parse.urlencode({
+        "csrfmiddlewaretoken": page.csrf,
+        "stay_signed_in_btn": "yes",
+        "ask_stay_signed_in": "on",
+    }).encode()
+    request = urllib.request.Request(stay_url, data=data, headers={
+        "Referer": stay_url,
+        "Origin": URL.rstrip("/"),
+    })
+    with opener.open(request, timeout=30) as response:
+        page = LoginPage(response.read().decode("utf-8"))
+    if page.password_field or page.stay_signed_in:
+        raise RuntimeError("Stay-signed-in choice was not accepted.")
     if not any(c.name == "sessionid" and not c.is_expired() for c in jar):
         raise RuntimeError("No current session cookie was received.")
     return jar
